@@ -214,7 +214,7 @@ void mostracomp(FILE *f)
             }
         }
         if (s != n-1) {
-            putchar('\n');
+            printf('\n');
             fflush(stdout);  // Força o pulo de uma linha na impressão
         }        
     }
