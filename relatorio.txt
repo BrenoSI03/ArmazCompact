@@ -1,0 +1,120 @@
+Relatório do Trabalho "Armazenamento compactado" - INF1018
+
+Grupo:
+
+	Breno de Andrade Soares - Matrícula: 2320363 - Turma: 3WC
+	Ana Carolina de Assis Souza - Matrícula: 2320860 - Turma: 3WC
+
+O trabalho consistiu em implementar um sistema de armazenamento compactado em C, 
+utilizando as funções gravacomp e mostracomp para gravar e exibir arrays de structs 
+em formato binário. O foco foi atender aos requisitos de compactação, como eliminar 
+bytes de padding e identificar corretamente o fim de cada estrutura.
+
+Realizamos alguns testes com diferentes tipos de structs, e em todos os casos o 
+programa funcionou corretamente, exibindo os valores no formato exigido.
+
+Estas foram algumas das estruturas testadas:
+
+A)
+
+struct A {
+    int a;
+    int b;
+    int c;
+};
+
+Nesse caso, a estrutura já é naturalmente alinhada.
+
+Teste:
+struct A va[2] = {
+        { 1, 2, 3 },
+        { -4, -5, -6 }
+    };
+
+Resultado:
+Estruturas: 2
+
+(int) 1 (00000001)
+(int) 2 (00000002)
+(int) 3 (00000003)
+
+(int) -4 (fffffffc)
+(int) -5 (fffffffb)
+(int) -6 (fffffffa)
+
+O teste foi bem sucedido.
+
+B)
+
+struct B {
+    char c;
+    int i;
+    unsigned u;
+};
+
+Nesse caso, 3 bytes de padding devem ser inseridos entre c e i para fazer o alinhamento da estrutura.
+
+Utilizamos o descritor "s01iu" para esse teste.
+
+Teste:
+struct B vb[2] = {
+        { 'A', 42, 1000 },
+        { 'B', -123, 65535 }
+    };
+
+O teste foi bem sucedido.
+
+Resultado:
+Estruturas: 2
+
+(str) A
+(int) 42 (0000002a)
+(uns) 1000 (000003e8)
+
+(str) B
+(int) -123 (ffffff85)
+(uns) 65535 (0000ffff)
+
+C)
+
+struct C {
+    int i;
+    char s1[4];
+    unsigned u;
+    char s2[5];
+};
+
+Nessa caso, o alinhamento deve ser feito inserindo 3 bytes de padding no final.
+
+Teste:
+struct C vc[3] = {
+        { 77, "abc", 100, "xy" },
+        { -88, "qqq", 222, "zzz" },
+        { 255, "xyz", 500, "asdad"}
+    };
+
+O teste foi bem sucedido.
+
+Resultado:
+Estruturas: 3
+
+(int) 77 (0000004d)
+(str) abc
+(uns) 100 (00000064)
+(str) xy
+
+(int) -88 (ffffffa8)
+(str) qqq
+(uns) 222 (000000de)
+(str) zzz
+
+(int) 255 (000000ff)
+(str) xyz
+(uns) 500 (000001f4)
+(str) asdad
+
+Conclusão:
+A partir dos testes realizados com diferentes configurações de estruturas, 
+incluindo casos com alinhamento natural e artificial (padding),
+pudemos observar que o sistema funcionou de forma adequada. Ele realizou a 
+compactação e a exibição conforme o esperado, atendendo aos requisitos estabelecidos. 
