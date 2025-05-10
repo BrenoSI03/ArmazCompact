@@ -22,7 +22,7 @@
  * @param x O tamanho a ser alinhado.
  * @return O tamanho alinhado.
  */
-static size_t align4(size_t x) { 
+static int align4(int x) { 
     return (x + 3u) & ~3u; 
 }
 
@@ -92,15 +92,14 @@ static void grava_int(FILE *f, int val, int assinado, int ultimo)
  * @param s A string a ser gravada.
  * @param ultimo Se verdadeiro, a string é a última no bloco de dados.
  */
-static void grava_str(FILE *f, const char *s, int ultimo)
+static void grava_str(FILE *f, const char *s, int tam_util, int ultimo)
 {
-    int tam = (int)strlen(s);              // Número de bytes usados (bits 5-0 - Tamanho)
-    if (tam > 63) tam = 63;
+    int tam = tam_util;                    // Número de bytes usados (bits 5-0 - Tamanho)
 
     unsigned char h = 0x40 | (tam & 0x3F); // Tipo: string (bit 6 = 1)
     if (ultimo) h |= 0x80;                 // Define bit de último campo (bit-7) - Bit Mais Significativo
     fwrite(&h, 1, 1, f);
-    fwrite(s, 1, (size_t)tam, f);
+    fwrite(s, 1, (int)tam, f);
 }
 
 /* ---------- FUNÇÃO PRINCIPAL: GRAVAR ----------- */
@@ -120,7 +119,7 @@ int gravacomp(int nstructs, void *valores, char *desc, FILE *f)
     if (fwrite(&(unsigned char){nstructs}, 1, 1, f) != 1) return -1;
 
     // Calcula o tamanho da struct com base no descritor
-    size_t tam_struct = 0, i = 0;
+    int tam_struct = 0, i = 0;
     while (desc[i]) {
         if (desc[i] == 'i' || desc[i] == 'u') {
             tam_struct = align4(tam_struct) + 4;
@@ -130,37 +129,43 @@ int gravacomp(int nstructs, void *valores, char *desc, FILE *f)
             while (isdigit((unsigned char)desc[i]))
                 tam = tam*10 + (desc[i++] - '0');
             if (tam < 1 || tam > 64) return -1;
-            tam_struct += (size_t)tam;
+            tam_struct += (int)tam;
         } else return -1;
     }
     tam_struct = align4(tam_struct);
 
     unsigned char *base = valores;
 
-    // Para cada struct do array
-    for (int s = 0; s < nstructs; s++, base += tam_struct) {
-        size_t off = 0;  
-        i = 0;
+    for (int s = 0; s < nstructs; ++s, base += tam_struct) {
+        int offset = 0; 
+        int i   = 0;
 
-        // Para cada campo descrito no descritor        
         while (desc[i]) {
-            int ultimo = (desc[i+1] == '\0' ||
-                          (desc[i]=='s' && !isdigit((unsigned char)desc[i+2])));
+            int ultimo;
+            if (desc[i] == 'i' || desc[i] == 'u') {
+                ultimo = (desc[i + 1] == '\0');
+            } else {
+                int j = i + 1;
+                while (isdigit((unsigned char)desc[j])) ++j;
+                ultimo = (desc[j] == '\0');
+            }
 
-            if (desc[i] == 'i' || desc[i] == 'u') { // Campo do tipo integer
-                off = align4(off);
-                int val; 
-        
-                memcpy(&val, base + off, 4); // Copia 4 bytes do campo da struct para a variável 'val'.
-                grava_int(f, val, desc[i]=='i', ultimo);
-                off += 4; i++;
+            if (desc[i] == 'i' || desc[i] == 'u') {
+                offset = align4(offset);
+                int val;
+                memcpy(&val, base + offset, 4);
+                grava_int(f, val, desc[i] == 'i', ultimo);
+                offset += 4;
+                ++i;
 
-            } else {  // Campo do tipo string
-                int tam = 0; i++; size_t j = i;
+            } else {
+                int tam = 0;
+                int j = i + 1;
                 while (isdigit((unsigned char)desc[j]))
-                    tam = tam*10 + (desc[j++] - '0');
-                grava_str(f, (char*)(base + off), ultimo);
-                off += (size_t)tam;
+                    tam = tam * 10 + (desc[j++] - '0');
+                int real_len = (int)strnlen((char *)(base + offset), tam);
+                grava_str(f, (char *)(base + offset), real_len, ultimo);
+                offset += tam;
                 i = j;
             }
         }
@@ -212,10 +217,7 @@ void mostracomp(FILE *f)
                     printf("(int) %d (%08x)\n", sval, (unsigned)sval);
                 }
             }
-        }
-        if (s != n-1) {
-            printf('\n');
-            fflush(stdout);  // Força o pulo de uma linha na impressão
-        }        
+        }     
+        printf("\n");
     }
 }

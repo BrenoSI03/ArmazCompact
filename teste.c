@@ -9,14 +9,15 @@ struct s {
 
 int main(void)
 {
-    struct s v[2] = {
+    struct s v[3] = {
         { -128, "abc", 256, "defg" },
-        { 999, "xyz", 1024, "ghijk" }
+        { 999, "xyz", 1024, "ghijk" },
+        { -2555, "gjh", 23, "ghjts" },
     };
 
     FILE *fout = fopen("out4.bin", "wb");
     if (!fout) { perror("fopen"); return 1; }
-    gravacomp(2, v, "is04us05", fout);
+    gravacomp(3, v, "is04us05", fout);
     fclose(fout);
 
     FILE *fin = fopen("out4.bin", "rb");
